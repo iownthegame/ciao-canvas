@@ -1,0 +1,390 @@
+<html>
+	<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<style>
+      *{
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      }
+
+      body {
+        touch-action: manipulation;
+      }
+
+      h1 {
+        margin-top: 0.6em;
+        color: #444444;
+        text-align: center;
+      }
+
+      #settings {
+        margin-top: 1.2em;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        width: fit-content;
+      }
+
+      #paint {
+        border: 0.2em solid #444444;
+        border-radius: 0.2em;
+        margin-left: auto;
+        margin-right: auto;
+        display: block;
+      }
+
+      .button {
+        border: none;
+        color: #eeeeee;
+        padding: 0.375em 0.875em;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 0.875em;
+        margin: 0.375em 0.125em;
+        margin-left: 0em;
+        cursor: pointer;
+        background-color: #444444;
+        border-radius: 0.1875em;
+      }
+      .button + .button {
+        margin-left: 0.125em;
+      }
+
+      .button:disabled {
+        color: gray;
+        cursor: not-allowed;
+      }
+
+      .label {
+        color: #444444;
+        font-size: 0.875em;
+      }
+
+      #paint-size {
+        accent-color: #444444;
+      }
+
+      .color-block {
+        width: 0.875em;
+        height: 0.875em;
+        cursor: pointer;
+        /* border-radius: 50% 50%; */
+        display: inline-block;
+        margin: 0 0.125em;
+      }
+
+      .color-block:hover {
+        border: #444444 0.0625em solid;
+      }
+
+      .color-block-1 {
+        background-color: #F95335;
+      }
+      .color-block-2 {
+        background-color: #FCAF38;
+      }
+      .color-block-3 {
+        background-color: #50A3A4;
+      }
+      .color-block-4 {
+        background-color: #674A40;
+      }
+      .color-block-5 {
+        background-color: #00436E;
+      }
+
+      @media only screen and (max-width: 600px) {
+        h1 {
+          font-size: 1.4em;
+        }
+      }
+		</style>
+
+    <script src="https://kit.fontawesome.com/66aa71580a.js" crossorigin="anonymous"></script>
+	</head>
+
+	<body onload="init()">
+    <h1>Welcome to Schierstins 103!</h1>
+
+    <div id="sketch">
+      <canvas id="paint"></canvas>
+    </div>
+
+    <div id="settings">
+      <div>
+        <div>
+          <label for="paint-color">Brush color (<output id="paint-color-output"></output>)</label>
+          <input type="color" id="paint-color" name="paint-color" value="#00436E">
+          <div class="color-block color-block-1" onclick="setPaintColor('#F95335');"></div>
+          <div class="color-block color-block-2" onclick="setPaintColor('#FCAF38');"></div>
+          <div class="color-block color-block-3" onclick="setPaintColor('#50A3A4');"></div>
+          <div class="color-block color-block-4" onclick="setPaintColor('#674A40');"></div>
+          <div class="color-block color-block-5" onclick="setPaintColor('#00436E');"></div>
+        </div>
+
+        <div>
+          <label>Brush size (<output id="paint-size-output"></output>)</label>
+          <input type="range" id="paint-size" name="paint-size" min="2" max="20" step="1" value="5" />
+        </div>
+
+        <div>
+          <button class="button" onclick="clearCanvas();"><i class="fa-solid fa-eraser"></i> Erase</button>
+          <button class="button" id="btn-undo" onclick="undo();"><i class="fa-solid fa-arrow-rotate-left"></i> Undo</button>
+          <button class="button" id="btn-redo" onclick="redo();"><i class="fa-solid fa-arrow-rotate-right"></i> Redo</button>
+          <button class="button" id="btn-save" onclick="save();"><i class="fa-solid fa-download"></i> Save</button>
+        </div>
+      </div>
+    </div>
+
+		<script>
+      var canvas, ctx, w, h,
+        prevX = 0,
+        currX = 0,
+        prevY = 0,
+        currY = 0;
+
+      var btnUndo, btnRedo, btnSave;
+
+      var cPushArray = new Array();
+      var cStep = -1;
+      const defaultColor = "#00436E";
+      const defaultSize = "5";
+
+      var colorPicker, colorPickerOutput, sizePicker, sizePickerOutput;
+      var mousePressed = false;
+      var dotFlag = false;
+      var shiftPressed = false;
+
+      function init() {
+        btnUndo = document.getElementById("btn-undo");
+        btnRedo = document.getElementById("btn-redo");
+        btnSave = document.getElementById("btn-save");
+
+        canvas = document.getElementById('paint');
+        ctx = canvas.getContext("2d");
+
+        canvas.width = window.innerWidth * 0.9;
+        canvas.height = window.innerHeight * 0.75;
+
+        w = canvas.width;
+        h = canvas.height;
+
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = defaultColor;
+        ctx.lineWidth = defaultSize;
+
+        // Take first snapshot
+        resetCanvas();
+
+        canvas.addEventListener("mousemove", function (e) {
+          findxy('move', e)
+        }, false);
+        canvas.addEventListener("mousedown", function (e) {
+          findxy('down', e)
+        }, false);
+        canvas.addEventListener("mouseup", function (e) {
+          findxy('up', e)
+        }, false);
+        canvas.addEventListener("mouseout", function (e) {
+          findxy('out', e)
+        }, false);
+
+        canvas.addEventListener("touchmove", function (e) {
+          findxy('move', e)
+        }, false);
+        canvas.addEventListener("touchstart", function (e) {
+          findxy('down', e)
+        }, false);
+        canvas.addEventListener("touchend", function (e) {
+          findxy('up', e)
+        }, false);
+
+        colorPicker = document.getElementById('paint-color');
+        colorPickerOutput = document.getElementById('paint-color-output');
+        colorPickerOutput.textContent = colorPicker.value.toUpperCase();
+
+        colorPicker.addEventListener('input', function() {
+          const value = colorPicker.value;
+          // console.log(colorPicker.value);
+          setPaintColor(value);
+        });
+
+        sizePicker = document.getElementById('paint-size');
+        sizePickerOutput = document.getElementById('paint-size-output');
+        sizePickerOutput.textContent = sizePicker.value;
+
+        sizePicker.addEventListener('input', (e) => {
+          const value = sizePicker.value;
+          // console.log(value);
+          setPaintSize(value);
+        });
+
+        // key press and release event
+        document.onkeydown = function(e) {
+          var eventObj = window.event? event : e;
+          // console.log("event", eventObj.keyCode, eventObj.metaKey, eventObj.shiftKey)
+          // cmd + z
+          if (eventObj.keyCode == 90 && eventObj.metaKey) {
+            undo();
+            return;
+          }
+          // cmd + x
+          if (eventObj.keyCode == 88 && eventObj.metaKey) {
+            redo();
+            return;
+          }
+          // shift
+          if (eventObj.shiftKey) {
+            // console.log("shift key down")
+            shiftPressed = true;
+          }
+        }
+        document.onkeyup = function(e) {
+          var eventObj = window.event? event : e;
+          // shift
+          if (eventObj.keyCode === 16) {
+            // console.log("shift key up")
+            shiftPressed = false;
+          }
+        }
+
+        // onbeforeunload, doesn't work in iOS
+        window.onbeforeunload = function() {
+          return 'You have unsaved changes!';
+        };
+      }
+
+      function setPaintColor(colour){
+        ctx.strokeStyle = colour;
+        colorPicker.value = colour;
+        colorPickerOutput.textContent = colour;
+      }
+
+      function setPaintSize(size){
+        ctx.lineWidth = size;
+        sizePickerOutput.textContent = size;
+      }
+
+      function clearCanvas(){
+        var m = confirm("Are you sure you want to erase?");
+        if (m) {
+          // ctx.clearRect(0, 0, w, h);
+          resetCanvas();
+        }
+      }
+
+      function resetCanvas() {
+        var image = new Image();
+        image.src = 'blank.jpeg';
+        image.onload = function () {
+          ctx.drawImage(image, 0, 0, w, h);
+          snapshot();
+        };
+      }
+
+      function snapshot() {
+        cStep++;
+        if (cStep < cPushArray.length) { cPushArray.length = cStep; }
+        cPushArray.push(canvas.toDataURL());
+        // console.log('snapshot', cStep);
+        updateButtonsStatus();
+      }
+
+      function updateButtonsStatus() {
+        // console.log("updateButtonsStatus", cStep, cPushArray.length)
+        if (cStep === 0) {
+          btnUndo.disabled = true;
+          btnSave.disabled = true;
+        } else {
+          btnUndo.disabled = false;
+          btnSave.disabled = false;
+        }
+
+        if (cStep === cPushArray.length - 1) {
+          btnRedo.disabled = true;
+        } else {
+          btnRedo.disabled = false;
+        }
+      }
+
+      function undo() {
+        // console.log("undo", cStep)
+        if (cStep > 0) {
+          cStep--;
+          var canvasPic = new Image();
+          canvasPic.onload = function () { ctx.drawImage(canvasPic, 0, 0); }
+          canvasPic.src = cPushArray[cStep];
+          updateButtonsStatus();
+        }
+      }
+
+      function redo() {
+        if (cStep < cPushArray.length - 1) {
+          cStep++;
+          var canvasPic = new Image();
+          canvasPic.src = cPushArray[cStep];
+          canvasPic.onload = function () { ctx.drawImage(canvasPic, 0, 0); }
+          updateButtonsStatus();
+        }
+      }
+
+      function draw() {
+        ctx.beginPath();
+        ctx.moveTo(prevX, prevY);
+        ctx.lineTo(currX, currY);
+        ctx.stroke();
+        ctx.closePath();
+      }
+
+      function save() {
+        var link = document.createElement('a');
+        link.download = 'ciao-canvas.png';
+        link.href = canvas.toDataURL()
+        link.click();
+      }
+
+      function findxy(res, e) {
+        if (res == 'down') {
+          prevX = currX;
+          prevY = currY;
+          currX = e.pageX - canvas.offsetLeft;
+          currY = e.pageY - canvas.offsetTop;
+
+          mousePressed = true;
+          dotFlag = true;
+          if (dotFlag) {
+            ctx.beginPath();
+            ctx.moveTo(currX, currY);
+            ctx.lineTo(currX + 1, currY + 1);
+            ctx.stroke();
+            ctx.closePath();
+            dotFlag = false;
+          }
+
+          // disable scroll
+          document.body.style.overflow = "hidden";
+        }
+        if (res == 'up' || res == "out") {
+          if (mousePressed) {
+            mousePressed = false;
+            snapshot();
+
+            // enable scroll
+            document.body.style.overflow = "visible";
+          }
+        }
+        if (res == 'move') {
+          if (mousePressed) {
+            prevX = currX;
+            prevY = currY;
+            currX = e.pageX - canvas.offsetLeft;
+            currY = e.pageY - canvas.offsetTop;
+            draw();
+          }
+        }
+      }
+		</script>
+	</body>
+</html>
