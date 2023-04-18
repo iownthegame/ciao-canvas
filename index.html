@@ -1,6 +1,6 @@
 <html>
 	<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
 
 		<style>
       *{
@@ -8,11 +8,10 @@
       }
 
       body {
-        touch-action: manipulation;
+        padding: 0.875em;
       }
 
       h1 {
-        margin-top: 0.6em;
         color: #444444;
         text-align: center;
       }
@@ -31,6 +30,10 @@
         margin-left: auto;
         margin-right: auto;
         display: block;
+        touch-action: none; /* fix for android chrome */
+        -webkit-user-select: none; /* Safari */
+        -ms-user-select: none; /* IE 10 and IE 11 */
+        user-select: none; /* Standard syntax */
       }
 
       .row {
@@ -129,6 +132,18 @@
         border: 0.0625em solid #cccccc;
       }
 
+      #gallery img {
+        width: 30em;
+        border: #dddddd 0.125em solid;
+        border-radius: 0.25em;
+        max-width: 100%;
+      }
+
+      #gallery img:hover {
+        cursor: pointer;
+        border-width: 0.25em;
+      }
+
       @media only screen and (max-width: 600px) {
         h1 {
           font-size: 1.4em;
@@ -140,7 +155,7 @@
 	</head>
 
 	<body onload="init()">
-    <h1>Welcome to Schierstins 103!</h1>
+    <h1>Welcome to Schierstins 103! <i class="fa-solid fa-house"></i></h1>
 
     <div id="sketch">
       <canvas id="paint"></canvas>
@@ -168,12 +183,20 @@
         </div>
 
         <div class="row">
-          <button class="button" onclick="clearCanvas();"><i class="fa-solid fa-eraser"></i>Erase All</button>
+          <button class="button" onclick="clearCanvas();"><i class="fa-solid fa-eraser"></i>Erase</button>
           <button class="button" id="btn-undo" onclick="undo();"><i class="fa-solid fa-arrow-rotate-left"></i>Undo</button>
           <button class="button" id="btn-redo" onclick="redo();"><i class="fa-solid fa-arrow-rotate-right"></i>Redo</button>
           <button class="button" id="btn-save" onclick="save();"><i class="fa-solid fa-download"></i>Save</button>
         </div>
       </div>
+    </div>
+
+    <div id="gallery">
+      <h1>Gallery</h1>
+      <img src="gallery/moneyplant.jpg" />
+      <img src="gallery/rainyday.jpg" />
+      <img src="gallery/whatsup.jpg" />
+      <img src="gallery/nogainnopain.png" />
     </div>
 
 		<script>
@@ -202,10 +225,12 @@
         btnSave = document.getElementById("btn-save");
         btnFill = document.getElementById("btn-fill");
 
+        const sketch = document.getElementById('sketch');
+
         canvas = document.getElementById('paint');
         ctx = canvas.getContext("2d");
 
-        canvas.width = window.innerWidth * 0.9;
+        canvas.width = sketch.offsetWidth * 1;
         canvas.height = window.innerHeight * 0.75;
 
         w = canvas.width;
@@ -232,13 +257,26 @@
           findxy('out', e)
         }, false);
 
-        canvas.addEventListener("touchmove", function (e) {
+        // canvas.addEventListener("touchmove", function (e) {
+        //   findxy('move', e)
+        // }, false);
+        // canvas.addEventListener("touchstart", function (e) {
+        //   findxy('down', e)
+        // }, false);
+        // canvas.addEventListener("touchend", function (e) {
+        //   findxy('up', e)
+        // }, false);
+
+        canvas.addEventListener("pointermove", function (e) {
+          e.preventDefault();
           findxy('move', e)
         }, false);
-        canvas.addEventListener("touchstart", function (e) {
+        canvas.addEventListener("pointerdown", function (e) {
+          e.preventDefault();
           findxy('down', e)
         }, false);
-        canvas.addEventListener("touchend", function (e) {
+        canvas.addEventListener("pointerup", function (e) {
+          e.preventDefault();
           findxy('up', e)
         }, false);
 
@@ -397,6 +435,10 @@
       }
 
       function findxy(res, e) {
+        // if (e.cancelable) {
+        //   e.preventDefault();
+        // }
+
         if (res == 'down') {
           prevX = currX;
           prevY = currY;
