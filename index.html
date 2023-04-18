@@ -19,7 +19,7 @@
 
       #settings {
         margin-top: 1.2em;
-        display: block;
+        display: flex;
         margin-left: auto;
         margin-right: auto;
         width: fit-content;
@@ -33,19 +33,32 @@
         display: block;
       }
 
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: start;
+      }
+
       .button {
         border: none;
         color: #eeeeee;
         padding: 0.375em 0.875em;
         text-align: center;
         text-decoration: none;
-        display: inline-block;
+        /* display: inline-block; */
         font-size: 0.875em;
         margin: 0.375em 0.125em;
         margin-left: 0em;
         cursor: pointer;
         background-color: #444444;
         border-radius: 0.1875em;
+        min-width: 5em;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .button i {
+        margin-right: 0.5em;
       }
 
       .button + .button {
@@ -60,13 +73,22 @@
         background-color: #666666;
       }
 
-      .label {
+      label {
         color: #444444;
-        font-size: 0.875em;
+      }
+
+      label + input {
+        margin-left: 0.25em;
       }
 
       #paint-size {
         accent-color: #444444;
+      }
+
+      .color-blocks {
+        margin: 0 0.375em;
+        display: flex;
+        align-items: center;
       }
 
       .color-block {
@@ -75,7 +97,7 @@
         cursor: pointer;
         /* border-radius: 50% 50%; */
         display: inline-block;
-        margin: 0 0.125em;
+        margin: 0 0.25em;
       }
 
       .color-block:hover {
@@ -126,27 +148,30 @@
 
     <div id="settings">
       <div>
-        <div>
+        <div class="row">
           <label for="paint-color">Brush color (<output id="paint-color-output"></output>)</label>
           <input type="color" id="paint-color" name="paint-color" value="#00436E">
-          <div class="color-block color-block-1" onclick="setPaintColor('#F95335');"></div>
-          <div class="color-block color-block-2" onclick="setPaintColor('#FCAF38');"></div>
-          <div class="color-block color-block-3" onclick="setPaintColor('#50A3A4');"></div>
-          <div class="color-block color-block-4" onclick="setPaintColor('#674A40');"></div>
-          <div class="color-block color-block-5" onclick="setPaintColor('#00436E');"></div>
-          <div class="color-block color-block-6" onclick="setPaintColor('white');"></div>
+          <div class="color-blocks">
+            <div class="color-block color-block-1" onclick="setPaintColor('#F95335');"></div>
+            <div class="color-block color-block-2" onclick="setPaintColor('#FCAF38');"></div>
+            <div class="color-block color-block-3" onclick="setPaintColor('#50A3A4');"></div>
+            <div class="color-block color-block-4" onclick="setPaintColor('#674A40');"></div>
+            <div class="color-block color-block-5" onclick="setPaintColor('#00436E');"></div>
+            <div class="color-block color-block-6" onclick="setPaintColor('white');"></div>
+          </div>
+          <!--button class="button" id="btn-fill" onclick="toggleFill();"><i class="fa-solid fa-fill-drip"></i>Fill</button-->
         </div>
 
-        <div>
+        <div class="row">
           <label>Brush size (<output id="paint-size-output"></output>)</label>
           <input type="range" id="paint-size" name="paint-size" min="2" max="20" step="1" value="5" />
         </div>
 
-        <div>
-          <button class="button" onclick="clearCanvas();"><i class="fa-solid fa-eraser"></i> Erase All</button>
-          <button class="button" id="btn-undo" onclick="undo();"><i class="fa-solid fa-arrow-rotate-left"></i> Undo</button>
-          <button class="button" id="btn-redo" onclick="redo();"><i class="fa-solid fa-arrow-rotate-right"></i> Redo</button>
-          <button class="button" id="btn-save" onclick="save();"><i class="fa-solid fa-download"></i> Save</button>
+        <div class="row">
+          <button class="button" onclick="clearCanvas();"><i class="fa-solid fa-eraser"></i>Erase All</button>
+          <button class="button" id="btn-undo" onclick="undo();"><i class="fa-solid fa-arrow-rotate-left"></i>Undo</button>
+          <button class="button" id="btn-redo" onclick="redo();"><i class="fa-solid fa-arrow-rotate-right"></i>Redo</button>
+          <button class="button" id="btn-save" onclick="save();"><i class="fa-solid fa-download"></i>Save</button>
         </div>
       </div>
     </div>
@@ -158,7 +183,7 @@
         prevY = 0,
         currY = 0;
 
-      var btnUndo, btnRedo, btnSave;
+      var btnUndo, btnRedo, btnSave, btnFill;
 
       var cPushArray = new Array();
       var cStep = -1;
@@ -169,11 +194,13 @@
       var mousePressed = false;
       var dotFlag = false;
       var shiftPressed = false;
+      var fillEnabled = false;
 
       function init() {
         btnUndo = document.getElementById("btn-undo");
         btnRedo = document.getElementById("btn-redo");
         btnSave = document.getElementById("btn-save");
+        btnFill = document.getElementById("btn-fill");
 
         canvas = document.getElementById('paint');
         ctx = canvas.getContext("2d");
@@ -321,6 +348,16 @@
         } else {
           btnRedo.disabled = false;
         }
+      }
+
+      function toggleFill() {
+         if (fillEnabled) {
+          fillEnabled = false;
+          btnFill.innerHTML = '<i class="fa-solid fa-fill-drip"></i>Fill';
+         } else {
+          fillEnabled = true;
+          btnFill.innerHTML = '<i class="fa-solid fa-fill-drip"></i>Fill (ON)';
+         }
       }
 
       function undo() {
